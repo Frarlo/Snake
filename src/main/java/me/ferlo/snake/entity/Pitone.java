@@ -1,33 +1,41 @@
-package me.ferlo.snake;
+package me.ferlo.snake.entity;
 
-import java.awt.Color;
-import java.awt.Graphics;
+import me.ferlo.snake.util.MoveDirection;
+import me.ferlo.snake.util.SeiMortoException;
+
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
 import java.util.Deque;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import static me.ferlo.snake.Constants.*;
-import me.ferlo.snake.render.Renderable;
 
 /**
  * Serpente
  * @author ferlin_francesco
  */
-public class Pitone implements Renderable {
+public class Pitone extends BaseEntity<Pitone> {
 
-    private final Snake game;
-    
+    private final List<Quadratino> segmenti;
+    private final List<Quadratino> segmentiUnmodifiable;
+
     private int x, y;
-    private final List<Quadratino> segmenti = new ArrayList<>();
-    private Quadratino lastQuadrato;
     private boolean canChangeDir;
-    
+
     private MoveDirection currDir;
-    private Deque<MoveDirection> newDirs = new LinkedBlockingDeque<>(MAX_STORED_MOVES);
+    private final Deque<MoveDirection> newDirs;
+
+    private Quadratino lastQuadrato;
     
-    public Pitone(Snake game) {
-        this.game = game;
+    public Pitone() {
+        super(HIGH_PRIORITY);
+
+        segmenti = new ArrayList<>();
+        segmentiUnmodifiable = Collections.unmodifiableList(segmenti);
+
+        newDirs = new LinkedBlockingDeque<>(MAX_STORED_MOVES);
     }
     
     public void reset(Quadratino quadratino) {
@@ -43,8 +51,9 @@ public class Pitone implements Renderable {
         
         canChangeDir = true;
     }
-    
-    public void move() throws SeiMortoException {
+
+    @Override
+    public void onTick() {
         switch(currDir) {
             case UP:
                 y -= MOVEMENT_SPEED;
@@ -67,10 +76,11 @@ public class Pitone implements Renderable {
             lastQuadrato = segmenti.get(segmenti.size() - 1);
             
             try {
-                if(segmenti.contains(game.getQuadrato(x, y)))
+                if(segmenti.contains(game.getEntityManager().getQuadrato(x, y)))
                     throw new SeiMortoException();
+
                 segmenti.remove(segmenti.size() - 1);
-                segmenti.add(0, game.getQuadrato(x, y));
+                segmenti.add(0, game.getEntityManager().getQuadrato(x, y));
                 canChangeDir = true;
             } catch(RuntimeException ex) {
                 throw new SeiMortoException();
@@ -85,56 +95,49 @@ public class Pitone implements Renderable {
             currDir = newDirs.poll();
             canChangeDir = false;
         }
+
+        if (getHead().hasMela()) {
+            getHead().setMela(false);
+            allungaLaSerpe();
+            game.melaMangiata();
+        }
     }
-    
-    public void changeDirection(MoveDirection dir) {
+
+    @Override
+    public void onKeyPress(int keyCode) {
+        switch(keyCode) {
+            case KeyEvent.VK_UP:
+                changeDirection(MoveDirection.UP);
+                break;
+            case KeyEvent.VK_DOWN:
+                changeDirection(MoveDirection.DOWN);
+                break;
+            case KeyEvent.VK_RIGHT:
+                changeDirection(MoveDirection.RIGHT);
+                break;
+            case KeyEvent.VK_LEFT:
+                changeDirection(MoveDirection.LEFT);
+                break;
+        }
+    }
+
+    private void changeDirection(MoveDirection dir) {
         MoveDirection lastDir = newDirs.isEmpty() ? currDir : newDirs.peekLast();
         if(!dir.equals(lastDir) && !dir.equals(lastDir.getOpposto()))
             newDirs.offer(dir);
     }
-    
-    public void allungaLaSerpe() {
+
+    private void allungaLaSerpe() {
         segmenti.add(lastQuadrato);
     }
-    
-    @Override
-    public void paint(Graphics g) {
-        g.setColor(Color.getHSBColor(System.nanoTime() / 10000000000f, 1, 0.95f));
-        
-        Quadratino lastQuadrato = null;
-        for(int i = 0; i < segmenti.size(); i++) {
-            Quadratino q = segmenti.get(i);
-            if(i != 0) {
-                switch(lastQuadrato.getDirection(q)) {
-                    case UP:
-                        g.fillRect(q.getMiddleX() - 10, q.getMiddleY() - 10, 20, 
-                                lastQuadrato.getMiddleY() - q.getMiddleY() + 10);
-                        break;
-                    case DOWN:
-                        g.fillRect(q.getMiddleX() - 10, lastQuadrato.getMiddleY(), 
-                                20, q.getMiddleY() - lastQuadrato.getMiddleY() + 10);
-                        break;
-                    case RIGHT:
-                        g.fillRect(lastQuadrato.getMiddleX(), q.getMiddleY() - 10, 
-                                q.getMiddleX() - lastQuadrato.getMiddleX() + 10, 20);
-                        break;
-                    case LEFT:
-                        g.fillRect(q.getMiddleX() - 10, q.getMiddleY() - 10, 
-                                lastQuadrato.getMiddleX() - q.getMiddleX() + 10, 20);
-                        break;
-                }
-            } else
-                g.fillOval(q.getMiddleX() - 10, q.getMiddleY() - 10, 20, 20); 
-            lastQuadrato = q;
-        }
-    }
-    
+
+    // Getters
+
     public Quadratino getHead() {
         return segmenti.get(0);
     }
 
-    @Override
-    public int getPriority() {
-        return Renderable.HIGH_PRIORITY;
+    public List<Quadratino> getSegmenti() {
+        return segmentiUnmodifiable;
     }
 }

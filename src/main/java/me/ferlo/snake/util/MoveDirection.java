@@ -1,4 +1,4 @@
-package me.ferlo.snake;
+package me.ferlo.snake.util;
 
 public enum MoveDirection {
     UP, DOWN, RIGHT, LEFT;
