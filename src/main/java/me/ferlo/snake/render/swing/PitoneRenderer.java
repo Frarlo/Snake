@@ -2,6 +2,7 @@ package me.ferlo.snake.render.swing;
 
 import me.ferlo.snake.entity.Pitone;
 import me.ferlo.snake.entity.Quadratino;
+import me.ferlo.snake.util.MoveDirection;
 
 import java.awt.*;
 
@@ -17,15 +18,33 @@ public class PitoneRenderer extends SwingRenderer<Pitone> {
         g2d.setColor(getRainbowColor());
 
         // Head
-        Quadratino head = toRender.getHead();
-        g2d.fillOval(
-                head.getMiddleX() - 10,
-                head.getMiddleY() - 10, 20, 20);
+
+        final Quadratino head = toRender.getHead();
+        final MoveDirection dir = toRender.getCurrDir();
+
+        int xToDraw = head.getMiddleX();
+        int yToDraw = head.getMiddleY();
+
+        final int yDiff = head.getMiddleY() - toRender.getY();
+        final int xDiff = head.getMiddleX() - toRender.getX();
+
+        if(dir == MoveDirection.UP || dir == MoveDirection.DOWN)
+            yToDraw -= yDiff;
+        else /* if(dir == MoveDirection.LEFT || dir == MoveDirection.RIGHT) */
+            xToDraw -= xDiff;
+
+        g2d.fillOval(xToDraw - 10, yToDraw - 10, 20, 20);
+
+        // Body
+
+        int lastCoordX = xToDraw;
+        int lastCoordY = yToDraw;
 
         Quadratino lastQuad = null;
         for(int i = 0, len = toRender.getSegmenti().size(); i < len; i++) {
 
             final Quadratino newQuad = toRender.getSegmenti().get(i);
+            final boolean isLast = i + 1 == len;
 
             if(lastQuad == null) { // Skip the head
                 lastQuad = newQuad;
@@ -34,36 +53,47 @@ public class PitoneRenderer extends SwingRenderer<Pitone> {
 
             switch(lastQuad.getDirection(newQuad)) {
                 case UP:
+                    int startY = newQuad.getMiddleY();
+                    if(isLast)
+                        startY -= yDiff;
+
                     g2d.fillRect(
                             newQuad.getMiddleX() - 10,
-                            newQuad.getMiddleY() - 10,
+                            startY - 10,
                             20,
-                            lastQuad.getMiddleY() - newQuad.getMiddleY() + 10);
+                            lastCoordY - startY + 10);
                     break;
                 case DOWN:
+                    int height = newQuad.getMiddleY() - lastCoordY + 10;
+                    if(isLast)
+                        height -= yDiff;
+
                     g2d.fillRect(
                             newQuad.getMiddleX() - 10,
-                            lastQuad.getMiddleY(),
+                            lastCoordY,
                             20,
-                            newQuad.getMiddleY() - lastQuad.getMiddleY() + 10);
+                            height);
                     break;
                 case RIGHT:
                     g2d.fillRect(
-                            lastQuad.getMiddleX(),
+                            lastCoordX,
                             newQuad.getMiddleY() - 10,
-                            newQuad.getMiddleX() - lastQuad.getMiddleX() + 10,
+                            newQuad.getMiddleX() - lastCoordX + 10,
                             20);
                     break;
                 case LEFT:
                     g2d.fillRect(
                             newQuad.getMiddleX() - 10,
                             newQuad.getMiddleY() - 10,
-                            lastQuad.getMiddleX() - newQuad.getMiddleX() + 10,
+                            lastCoordX - newQuad.getMiddleX() + 10,
                             20);
                     break;
             }
 
             lastQuad = newQuad;
+
+            lastCoordX = newQuad.getMiddleX();
+            lastCoordY = newQuad.getMiddleY();
         }
     }
 

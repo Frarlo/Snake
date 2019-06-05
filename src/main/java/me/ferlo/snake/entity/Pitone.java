@@ -133,6 +133,19 @@ public class Pitone extends BaseEntity<Pitone> {
 
     // Getters
 
+
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public MoveDirection getCurrDir() {
+        return currDir;
+    }
+
     public Quadratino getHead() {
         return segmenti.get(0);
     }
