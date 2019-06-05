@@ -35,6 +35,7 @@ public final class Snake implements Constants {
 
         renderer = new SwingRenderManager();
         entityManager = new EntityManager();
+        renderer.startRendering();
 
         restart();
         renderer.showDialog(

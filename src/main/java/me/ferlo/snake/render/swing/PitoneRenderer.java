@@ -23,7 +23,9 @@ public class PitoneRenderer extends SwingRenderer<Pitone> {
                 head.getMiddleY() - 10, 20, 20);
 
         Quadratino lastQuad = null;
-        for(Quadratino newQuad : toRender.getSegmenti()) {
+        for(int i = 0, len = toRender.getSegmenti().size(); i < len; i++) {
+
+            final Quadratino newQuad = toRender.getSegmenti().get(i);
 
             if(lastQuad == null) { // Skip the head
                 lastQuad = newQuad;

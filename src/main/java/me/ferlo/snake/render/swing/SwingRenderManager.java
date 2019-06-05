@@ -47,7 +47,6 @@ public class SwingRenderManager extends JPanel implements RenderManager, Constan
         frame.addKeyListener(new KeyboardHandler());
 
         frame.setContentPane(this);
-        frame.setVisible(true);
     }
 
     @Override
@@ -83,6 +82,11 @@ public class SwingRenderManager extends JPanel implements RenderManager, Constan
             repaint(toWait);
         else
             repaint();
+    }
+
+    @Override
+    public void startRendering() {
+        frame.setVisible(true);
     }
 
     @Override
