@@ -7,12 +7,17 @@ import me.ferlo.snake.entity.Quadratino;
 import me.ferlo.snake.render.RenderManager;
 import me.ferlo.snake.render.Renderer;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SwingRenderManager extends JPanel implements RenderManager, Constants {
 
@@ -20,17 +25,37 @@ public class SwingRenderManager extends JPanel implements RenderManager, Constan
 
     private static final Snake game = Snake.getInstance();
 
+    private static final File BASE_PATH;
+    private static final boolean SAVE_FRAMES = false;
+
+    static {
+
+        File file;
+        int i = 0;
+        do {
+            file = new File("C:" + File.separator + "tests" + File.separator + "test_" + (i++));
+        } while (file.exists());
+
+        BASE_PATH = file;
+        BASE_PATH.mkdirs();
+    }
+
     // Attributes
 
     private final JFrame frame;
 
     private final Map<Class<?>, Renderer<?>> rendererMap;
 
+    private final ExecutorService executor;
+    private int frameNumber;
+
     public SwingRenderManager() {
 
         rendererMap = new HashMap<>();
         rendererMap.put(Pitone.class, new PitoneRenderer(this));
         rendererMap.put(Quadratino.class, new QuadratinoRenderer(this));
+
+        executor = Executors.newSingleThreadExecutor();
 
         frame = new JFrame() {
             @Override
@@ -50,9 +75,27 @@ public class SwingRenderManager extends JPanel implements RenderManager, Constan
     }
 
     @Override
-    public void paintComponent(Graphics g) {
+    public void paint(Graphics g) {
+        super.paint(g);
 
-        final long startMs = System.currentTimeMillis();
+        if(SAVE_FRAMES) {
+            try {
+                BufferedImage imgBuf = new Robot().createScreenCapture(bounds());
+                Graphics2D graphics2D = imgBuf.createGraphics();
+                super.paint(graphics2D);
+
+                final int currFrameNumber = frameNumber++;
+                executor.submit(() -> ImageIO.write(imgBuf, "jpeg",
+                        new File(BASE_PATH, "capture_" + currFrameNumber + ".jpeg")));
+            } catch (Exception e1) {
+                System.err.println("Couldn't save frame");
+                e1.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public void paintComponent(Graphics g) {
 
         super.paintComponent(g);
 
@@ -71,22 +114,13 @@ public class SwingRenderManager extends JPanel implements RenderManager, Constan
                 "Punteggio: " + Snake.getInstance().getScore(),
                 getWidth() / 2,
                 getHeight() - 20);
-
-        // Wait until the next frame
-
-        final long endMs = System.currentTimeMillis();
-        final long timePassed = endMs - startMs;
-        final long toWait = (1000 / FPS) - timePassed;
-
-        if(toWait > 0)
-            repaint(toWait);
-        else
-            repaint();
     }
 
     @Override
-    public void startRendering() {
-        frame.setVisible(true);
+    public void render() {
+        if(!frame.isVisible())
+            frame.setVisible(true);
+        paintImmediately(0, 0, getWidth(), getHeight());
     }
 
     @Override
@@ -99,10 +133,13 @@ public class SwingRenderManager extends JPanel implements RenderManager, Constan
                 JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE,
                 null, new Object[] { yesButton, noButton }, yesButton);
 
-        if(response == 0)
-            onYes.run();
-        else
-            onNo.run();
+        if(response == 0) {
+            if(onYes != null)
+                onYes.run();
+        } else {
+            if(onNo != null)
+                onNo.run();
+        }
     }
 
     private final class KeyboardHandler extends KeyAdapter {

@@ -74,17 +74,20 @@ public class Pitone extends BaseEntity<Pitone> {
                 || y < getHead().getMiddleY() - SQUARE_HEIGHT / 2
                 || y > getHead().getMiddleY() + SQUARE_HEIGHT / 2) {
             lastQuadrato = segmenti.get(segmenti.size() - 1);
-            
-            try {
-                if(segmenti.contains(game.getEntityManager().getQuadrato(x, y)))
-                    throw new SeiMortoException();
 
-                segmenti.remove(segmenti.size() - 1);
-                segmenti.add(0, game.getEntityManager().getQuadrato(x, y));
-                canChangeDir = true;
+            final Quadratino newQuad;
+            try {
+                newQuad = game.getEntityManager().getQuadrato(x, y);
             } catch(RuntimeException ex) {
                 throw new SeiMortoException();
             }
+
+            if(segmenti.contains(newQuad))
+                throw new SeiMortoException();
+
+            segmenti.remove(segmenti.size() - 1);
+            segmenti.add(0, newQuad);
+            canChangeDir = true;
         }
         
         if (canChangeDir && newDirs.peek() != null

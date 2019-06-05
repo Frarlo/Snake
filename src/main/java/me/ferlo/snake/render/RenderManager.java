@@ -2,7 +2,7 @@ package me.ferlo.snake.render;
 
 public interface RenderManager {
 
-    void startRendering();
+    void render();
 
     void showDialog(String title, String message,
                     String yesButton, String noButton,
