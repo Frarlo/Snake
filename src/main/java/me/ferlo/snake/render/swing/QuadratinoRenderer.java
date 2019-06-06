@@ -15,6 +15,8 @@ public class QuadratinoRenderer extends SwingRenderer<Quadratino> {
 
 //        g2d.setColor(toRender.getColor());
 //        g2d.fillRect(toRender.getX(), toRender.getY(), toRender.getWidth(), toRender.getHeight());
+        g2d.setColor(Color.black);
+        g2d.drawRect(toRender.getX(), toRender.getY(), toRender.getWidth(), toRender.getHeight());
 
         if(toRender.hasMela()) {
             g2d.setColor(Color.red);

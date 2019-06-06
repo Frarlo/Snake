@@ -10,6 +10,8 @@ import static me.ferlo.snake.util.MoveDirection.*;
 
 public class PitoneRenderer extends SwingRenderer<Pitone> {
 
+    private static final int SNAKE_WIDTH = 10;
+
     public PitoneRenderer(SwingRenderManager renderManager) {
         super(renderManager);
     }
@@ -22,7 +24,9 @@ public class PitoneRenderer extends SwingRenderer<Pitone> {
         // Head
 
         final Quadratino head = toRender.getHead();
-        final MoveDirection dir = toRender.getCurrDir();
+
+        final MoveDirection movDir = toRender.getCurrDir();
+        final boolean isMovVertical = movDir == UP || movDir == DOWN;
 
         int xToDraw = head.getMiddleX();
         int yToDraw = head.getMiddleY();
@@ -30,35 +34,38 @@ public class PitoneRenderer extends SwingRenderer<Pitone> {
         final int yDiff = head.getMiddleY() - toRender.getY();
         final int xDiff = head.getMiddleX() - toRender.getX();
 
-        if(dir == UP || dir == DOWN)
+        if(isMovVertical)
             yToDraw -= yDiff;
-        else /* if(dir == MoveDirection.LEFT || dir == MoveDirection.RIGHT) */
+        else
             xToDraw -= xDiff;
 
-        g2d.fillOval(xToDraw - 10, yToDraw - 10, 20, 20);
+        g2d.fillOval(
+                xToDraw - SNAKE_WIDTH / 2,
+                yToDraw - SNAKE_WIDTH / 2, SNAKE_WIDTH, SNAKE_WIDTH);
 
         if(toRender.getSegmenti().size() != 1) {
-            switch(dir) {
+            switch(movDir) {
                 case UP: {
-                    final int height = head.getY() + head.getHeight() - yToDraw;
-                    g2d.fillRect(xToDraw - 10, yToDraw, 20, height);
+                    final int height = head.getMiddleY() + SNAKE_WIDTH / 2 - yToDraw;
+                    g2d.fillRect(xToDraw - SNAKE_WIDTH / 2, yToDraw, SNAKE_WIDTH, height);
                     break;
                 }
                 case DOWN:
-                    final int height = yToDraw - head.getY();
-                    g2d.fillRect(xToDraw - 10, head.getY(), 20, height);
+                    final int startY = head.getMiddleY() - SNAKE_WIDTH / 2;
+                    final int height = yToDraw - startY;
+                    g2d.fillRect(xToDraw - SNAKE_WIDTH / 2, startY, SNAKE_WIDTH, height);
                     break;
                 case LEFT: {
-                    final int width = head.getX() + head.getWidth() - xToDraw;
-                    g2d.fillRect(xToDraw, yToDraw - 10, width, 20);
+                    final int width = head.getMiddleX() + SNAKE_WIDTH / 2 - xToDraw;
+                    g2d.fillRect(xToDraw, yToDraw - SNAKE_WIDTH / 2, width, SNAKE_WIDTH);
                     break;
                 }
                 case RIGHT:
-                    final int width = xToDraw - head.getX();
-                    g2d.fillRect(head.getX(), yToDraw - 10, width, 20);
+                    final int startX = head.getMiddleX() - SNAKE_WIDTH / 2;
+                    final int width = xToDraw - startX;
+                    g2d.fillRect(startX, yToDraw - SNAKE_WIDTH / 2, width, SNAKE_WIDTH);
                     break;
             }
-            g2d.setColor(getRainbowColor());
         }
 
         // Body
@@ -83,40 +90,41 @@ public class PitoneRenderer extends SwingRenderer<Pitone> {
             int middleY = newQuad.getMiddleY();
 
             if(isLast) {
-                if(quadDir == LEFT || quadDir == RIGHT)
-                    middleX -= xDiff;
+                final int diff = isMovVertical ? yDiff : xDiff;
+                if(quadDir == LEFT)
+                    middleX -= diff;
                 else if(quadDir == UP || quadDir == DOWN)
-                    middleY -= yDiff;
+                    middleY -= diff;
             }
 
             switch(quadDir) {
                 case UP:
                     g2d.fillRect(
-                            middleX - 10,
-                            middleY - 10,
-                            20,
-                            lastCoordY - middleY + 10);
+                            middleX - SNAKE_WIDTH / 2,
+                            middleY - SNAKE_WIDTH / 2,
+                            SNAKE_WIDTH,
+                            lastCoordY - middleY + SNAKE_WIDTH / 2);
                     break;
                 case DOWN:
                     g2d.fillRect(
-                            middleX - 10,
+                            middleX - SNAKE_WIDTH / 2,
                             lastCoordY,
-                            20,
-                            middleY - lastCoordY + 10);
+                            SNAKE_WIDTH,
+                            middleY - lastCoordY + SNAKE_WIDTH / 2);
                     break;
                 case LEFT:
                     g2d.fillRect(
-                            middleX - 10,
-                            middleY - 10,
-                            lastCoordX - middleX + 10,
-                            20);
+                            middleX - SNAKE_WIDTH / 2,
+                            middleY - SNAKE_WIDTH / 2,
+                            lastCoordX - middleX + SNAKE_WIDTH / 2,
+                            SNAKE_WIDTH);
                     break;
                 case RIGHT:
                     g2d.fillRect(
                             lastCoordX,
-                            middleY - 10,
-                            middleX - lastCoordX + 10,
-                            20);
+                            middleY - SNAKE_WIDTH / 2,
+                            middleX - lastCoordX + SNAKE_WIDTH / 2,
+                            SNAKE_WIDTH);
                     break;
             }
 
