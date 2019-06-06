@@ -98,7 +98,7 @@ public class EntityManager implements Constants {
             final int randomCol = melaRandom.nextInt(squadrette[randomRow].length);
             randomSq = squadrette[randomRow][randomCol];
 
-        } while(randomSq.hasMela());
+        } while(randomSq.hasMela() || cobra.getSegmenti().contains(randomSq));
 
         randomSq.setMela(true);
     }
