@@ -33,4 +33,40 @@ public class SwingContext implements RenderContext {
         // Draw the String
         g2d.drawString(text, xd, yd);
     }
+
+    public void drawBorderedRect(int x, int y,
+                                 int width, int height,
+                                 Color border,
+                                 Color inner) {
+        final Color oldColor = g2d.getColor();
+        g2d.setColor(inner);
+        g2d.fillRect(x, y , width, height);
+        g2d.setColor(border);
+        g2d.drawRect(x, y, width, height);
+        g2d.setColor(oldColor);
+    }
+
+    public void drawBorderedRect(int x, int y,
+                                 int width, int height,
+                                 Color border) {
+        drawBorderedRect(x, y, width, height, border, g2d.getColor());
+    }
+
+    public void drawBorderedCircle(int x, int y,
+                                   int diameter,
+                                   Color border,
+                                   Color inner) {
+        final Color oldColor = g2d.getColor();
+        g2d.setColor(inner);
+        g2d.fillOval(x, y, diameter, diameter);
+        g2d.setColor(border);
+        g2d.drawOval(x, y, diameter, diameter);
+        g2d.setColor(oldColor);
+    }
+
+    public void drawBorderedCircle(int x, int y,
+                                   int diameter,
+                                   Color border) {
+        drawBorderedCircle(x, y, diameter, border, g2d.getColor());
+    }
 }

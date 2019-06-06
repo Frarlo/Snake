@@ -17,6 +17,7 @@ public class PitoneRenderer extends SwingRenderer<Pitone> {
     }
 
     @Override
+    @SuppressWarnings("SuspiciousNameCombination")
     protected void onRender(SwingContext ctx, Graphics2D g2d, Pitone toRender) {
 
         g2d.setColor(getRainbowColor());
@@ -26,7 +27,6 @@ public class PitoneRenderer extends SwingRenderer<Pitone> {
         final Quadratino head = toRender.getHead();
 
         final MoveDirection movDir = toRender.getCurrDir();
-        final boolean isMovVertical = movDir == UP || movDir == DOWN;
 
         int xToDraw = head.getMiddleX();
         int yToDraw = head.getMiddleY();
@@ -34,39 +34,44 @@ public class PitoneRenderer extends SwingRenderer<Pitone> {
         final int yDiff = head.getMiddleY() - toRender.getY();
         final int xDiff = head.getMiddleX() - toRender.getX();
 
-        if(isMovVertical)
+        if(movDir.isVertical())
             yToDraw -= yDiff;
-        else
+        else // if (movDir.isHorizontal())
             xToDraw -= xDiff;
 
-        g2d.fillOval(
-                xToDraw - SNAKE_WIDTH / 2,
-                yToDraw - SNAKE_WIDTH / 2, SNAKE_WIDTH, SNAKE_WIDTH);
-
         if(toRender.getSegmenti().size() != 1) {
+
+            // Draw from the head position till the end of the square
+            // so corners gets drawn correctly
+
             switch(movDir) {
                 case UP: {
                     final int height = head.getMiddleY() + SNAKE_WIDTH / 2 - yToDraw;
-                    g2d.fillRect(xToDraw - SNAKE_WIDTH / 2, yToDraw, SNAKE_WIDTH, height);
+                    ctx.drawBorderedRect(xToDraw - SNAKE_WIDTH / 2, yToDraw, SNAKE_WIDTH, height, Color.black);
                     break;
                 }
                 case DOWN:
                     final int startY = head.getMiddleY() - SNAKE_WIDTH / 2;
                     final int height = yToDraw - startY;
-                    g2d.fillRect(xToDraw - SNAKE_WIDTH / 2, startY, SNAKE_WIDTH, height);
+                    ctx.drawBorderedRect(xToDraw - SNAKE_WIDTH / 2, startY, SNAKE_WIDTH, height, Color.black);
                     break;
                 case LEFT: {
                     final int width = head.getMiddleX() + SNAKE_WIDTH / 2 - xToDraw;
-                    g2d.fillRect(xToDraw, yToDraw - SNAKE_WIDTH / 2, width, SNAKE_WIDTH);
+                    ctx.drawBorderedRect(xToDraw, yToDraw - SNAKE_WIDTH / 2, width, SNAKE_WIDTH, Color.black);
                     break;
                 }
                 case RIGHT:
                     final int startX = head.getMiddleX() - SNAKE_WIDTH / 2;
                     final int width = xToDraw - startX;
-                    g2d.fillRect(startX, yToDraw - SNAKE_WIDTH / 2, width, SNAKE_WIDTH);
+                    ctx.drawBorderedRect(startX, yToDraw - SNAKE_WIDTH / 2, width, SNAKE_WIDTH, Color.black);
                     break;
             }
         }
+
+        ctx.drawBorderedCircle(
+                xToDraw - SNAKE_WIDTH / 2,
+                yToDraw - SNAKE_WIDTH / 2, SNAKE_WIDTH,
+                Color.black);
 
         // Body
 
@@ -90,41 +95,52 @@ public class PitoneRenderer extends SwingRenderer<Pitone> {
             int middleY = newQuad.getMiddleY();
 
             if(isLast) {
-                final int diff = isMovVertical ? yDiff : xDiff;
-                if(quadDir == LEFT)
-                    middleX -= diff;
-                else if(quadDir == UP || quadDir == DOWN)
+                final MoveDirection tailMovDir = quadDir.getOpposto();
+                int diff = movDir.isVertical() ? yDiff : xDiff;
+
+                // If the tail is moving in an opposite direction compared to the head,
+                // revert the difference sign
+                if(shouldFixDiff(movDir, tailMovDir))
+                    diff *= -1;
+
+                if(tailMovDir.isVertical())
                     middleY -= diff;
+                else // if(tailMovDir.isHorizontal())
+                    middleX -= diff;
             }
 
             switch(quadDir) {
                 case UP:
-                    g2d.fillRect(
+                    ctx.drawBorderedRect(
                             middleX - SNAKE_WIDTH / 2,
                             middleY - SNAKE_WIDTH / 2,
                             SNAKE_WIDTH,
-                            lastCoordY - middleY + SNAKE_WIDTH / 2);
+                            lastCoordY - middleY + SNAKE_WIDTH / 2,
+                            Color.black);
                     break;
                 case DOWN:
-                    g2d.fillRect(
+                    ctx.drawBorderedRect(
                             middleX - SNAKE_WIDTH / 2,
                             lastCoordY,
                             SNAKE_WIDTH,
-                            middleY - lastCoordY + SNAKE_WIDTH / 2);
+                            middleY - lastCoordY + SNAKE_WIDTH / 2,
+                            Color.black);
                     break;
                 case LEFT:
-                    g2d.fillRect(
+                    ctx.drawBorderedRect(
                             middleX - SNAKE_WIDTH / 2,
                             middleY - SNAKE_WIDTH / 2,
                             lastCoordX - middleX + SNAKE_WIDTH / 2,
-                            SNAKE_WIDTH);
+                            SNAKE_WIDTH,
+                            Color.black);
                     break;
                 case RIGHT:
-                    g2d.fillRect(
+                    ctx.drawBorderedRect(
                             lastCoordX,
                             middleY - SNAKE_WIDTH / 2,
                             middleX - lastCoordX + SNAKE_WIDTH / 2,
-                            SNAKE_WIDTH);
+                            SNAKE_WIDTH,
+                            Color.black);
                     break;
             }
 
@@ -133,6 +149,18 @@ public class PitoneRenderer extends SwingRenderer<Pitone> {
             lastCoordX = newQuad.getMiddleX();
             lastCoordY = newQuad.getMiddleY();
         }
+    }
+
+    private boolean shouldFixDiff(MoveDirection headMovDir,
+                                  MoveDirection tailMovDir) {
+        return shouldFixDiff0(headMovDir, tailMovDir) || shouldFixDiff0(tailMovDir, headMovDir);
+    }
+
+    private boolean shouldFixDiff0(MoveDirection dir1,
+                                   MoveDirection dir2) {
+        return dir1.isOpposto(dir2) ||
+                (dir1 == UP && dir2 == RIGHT) ||
+                (dir1 == DOWN && dir2 == LEFT);
     }
 
     private static Color getRainbowColor() {
