@@ -13,7 +13,9 @@ import java.util.Random;
 public class EntityManager implements Constants {
 
     private final Quadratino[][] squadrette;
+
     private final Pitone cobra;
+    private Quadratino mela;
 
     private final List<Entity> entities;
 
@@ -101,5 +103,14 @@ public class EntityManager implements Constants {
         } while(randomSq.hasMela());
 
         randomSq.setMela(true);
+        mela = randomSq;
+    }
+
+    public Pitone getCobra() {
+        return cobra;
+    }
+
+    public Quadratino getMela() {
+        return mela;
     }
 }

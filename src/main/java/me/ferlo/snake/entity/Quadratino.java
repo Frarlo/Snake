@@ -14,15 +14,15 @@ public class Quadratino extends BaseEntity<Quadratino> {
     private final Color color;
 
     private boolean hasMela;
-    
+
     public Quadratino(int x, int y,
-               int width, int height,
-               Color color) {
-       this.x = x;
-       this.y = y;
-       this.width = width;
-       this.height = height;
-       this.color = color;
+                      int width, int height,
+                      Color color) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.color = color;
     }
 
     @Override
@@ -38,9 +38,9 @@ public class Quadratino extends BaseEntity<Quadratino> {
     }
 
     // Getters
-    
+
     public MoveDirection getDirection(Quadratino q2) {
-        int xDiff = getMiddleX() - q2.getMiddleX(), 
+        int xDiff = getMiddleX() - q2.getMiddleX(),
                 yDiff = getMiddleY() - q2.getMiddleY();
         if(xDiff == SQUARE_WIDTH)
             return MoveDirection.LEFT;
