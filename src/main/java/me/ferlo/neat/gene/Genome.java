@@ -201,7 +201,7 @@ public class Genome implements Model {
         }
 
         final float[] outputs = new float[outputSize];
-        final List<Node> outputNodes = unsafe.getInputNodes();
+        final List<Node> outputNodes = unsafe.getOutputNodes();
         for(int i = 0; i < outputSize; i++)
             outputs[i] = outputNodes.get(i).getValue();
 

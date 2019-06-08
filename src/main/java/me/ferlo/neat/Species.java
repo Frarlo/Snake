@@ -36,8 +36,8 @@ public class Species {
         final List<Genome> sorted = new ArrayList<>(members);
         sorted.sort(Comparator.comparingDouble(Genome::getFitness));
 
-        int toRemove = (int) Math.ceil(sorted.size() * core.getConfig().getGenerationEliminationPercentage());
-        while (toRemove-- > 0)
+        final int toRemove = (int) Math.floor(sorted.size() * core.getConfig().getGenerationEliminationPercentage());
+        for (int i = 0; i < toRemove; i++)
             sorted.remove(sorted.size() - 1);
 
         this.members.clear();
