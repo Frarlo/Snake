@@ -44,13 +44,32 @@ public class Population {
 
     public void nextGeneration() {
 
+        core.getDebugFrame().setSpecies(species.size());
+        core.getDebugFrame().setCurrentGeneration(generation);
+        if(best != null)
+            core.getDebugFrame().setMaxFitness(best.getFitness());
+
+        final float oldBestFitness = best == null ? 0 : best.getFitness();
         final float[] totalAvgFitness = {0};
-        for(Species species : species) {
+
+        best = null;
+        for(int i = 0; i < species.size(); i++) {
+            final Species species = this.species.get(i);
+            core.getDebugFrame().setCurrentSpecies(i + 1);
+
             species.nextGeneration();
             totalAvgFitness[0] += species.getAvgFitness();
+            // We can search for the best now as the species with the best fitness is going to survive,
+            // and the best genome is not going to be killed
+            final Genome currBest = species.getBest();
+            if(best == null || currBest.getFitness() > best.getFitness())
+                best = currBest;
         }
 
         species.removeIf(species -> {
+            // Always keep the best species
+            if(species.getMaxFitness() >= oldBestFitness)
+                return false;
             // Stale species
            if(species.getStaleness() > core.getConfig().getMaxStaleSpecies())
                return true;
@@ -59,19 +78,12 @@ public class Population {
             return breeds < 1;
         });
 
-        best = null;
-
         final List<Genome> children = new ArrayList<>();
         for (Species species : species) {
             final int breeds = (int) Math.floor(species.getAvgFitness() / totalAvgFitness[0] * populationSize);
             for(int i = 0; i < breeds; i++)
                 children.add(species.breedChild());
-
             species.killAllButTheBest();
-
-            final Genome currBest = species.getBest();
-            if(best == null || currBest.getFitness() > best.getFitness())
-                best = currBest;
         }
 
         while(species.size() + children.size() < populationSize) {

@@ -2,14 +2,14 @@ package me.ferlo.neat.gene;
 
 public class Link {
 
-    private final Node in;
-    private final Node out;
+    private final int in;
+    private final int out;
 
     private float weight;
     private boolean enabled;
     private final int innovation;
 
-    public Link(Node in, Node out, float weight, boolean enabled, int innovation) {
+    public Link(int in, int out, float weight, boolean enabled, int innovation) {
         this.in = in;
         this.out = out;
         this.weight = weight;
@@ -18,18 +18,18 @@ public class Link {
     }
 
     public Link(Link other) {
-        in = other.in.copy();
-        out = other.out.copy();
+        in = other.in;
+        out = other.out;
         weight = other.weight;
         enabled = other.enabled;
         innovation = other.innovation;
     }
 
-    public Node getIn() {
+    public int getIn() {
         return in;
     }
 
-    public Node getOut() {
+    public int getOut() {
         return out;
     }
 

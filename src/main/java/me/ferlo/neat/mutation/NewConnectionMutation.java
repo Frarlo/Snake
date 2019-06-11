@@ -13,22 +13,20 @@ public class NewConnectionMutation extends BaseMutation {
 
     @Override
     public void doMutate(Genome.Unsafe toMutate) {
-
-        if(toMutate.getHiddenSize() > 0)
-            return;
-
-        outer: while(true) {
+        outer: for(int i = 0; i < 100; i++) {
             final Node inGene = getRandomNode(toMutate);
             final Node outGene = getRandomNodeExcludeInput(toMutate);
 
-            if(inGene.equals(outGene))
+            if(inGene.getId() == outGene.getId())
                 continue;
 
             for(Link link : toMutate.getLinks())
-                if(link.getIn().equals(inGene) && link.getOut().equals(outGene))
+                if((link.getIn() == inGene.getId() && link.getOut() == outGene.getId()) ||
+                        (link.getOut() == inGene.getId() && link.getIn() == outGene.getId()))
                     continue outer; // Connection already exists
 
-            toMutate.addConnection(new Link(inGene, outGene,
+            toMutate.addConnection(new Link(
+                    inGene.getId(), outGene.getId(),
                     random.nextFloat() * 4f - 2f,
                     true, core.getAndIncrementInnovation()));
             break;
@@ -36,11 +34,28 @@ public class NewConnectionMutation extends BaseMutation {
     }
 
     private Node getRandomNode(Genome.Unsafe toMutate) {
-        return toMutate.getNodes().get(random.nextInt(toMutate.getNodes().size()));
+        int randomN =  random.nextInt(toMutate.getInputSize() + toMutate.getHiddenSize() + toMutate.getOutputSize());
+
+        if(randomN < toMutate.getInputSize())
+            return toMutate.getInputNodes().get(randomN);
+        randomN -= toMutate.getInputSize();
+
+        if(randomN < toMutate.getHiddenSize())
+            return toMutate.getHiddenNodes().get(randomN);
+        randomN -= toMutate.getHiddenSize();
+
+//        if(randomN < toMutate.getOutputSize())
+        return toMutate.getOutputNodes().get(randomN);
     }
 
     private Node getRandomNodeExcludeInput(Genome.Unsafe toMutate) {
-        return toMutate.getNodes().get(toMutate.getInputSize() +
-                random.nextInt(toMutate.getNodes().size() - toMutate.getInputSize()));
+        int randomN =  random.nextInt(toMutate.getHiddenSize() + toMutate.getOutputSize());
+
+        if(randomN < toMutate.getHiddenSize())
+            return toMutate.getHiddenNodes().get(randomN);
+        randomN -= toMutate.getHiddenSize();
+
+//        if(randomN < toMutate.getOutputSize())
+        return toMutate.getOutputNodes().get(randomN);
     }
 }

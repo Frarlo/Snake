@@ -12,6 +12,8 @@ import java.util.Random;
 
 public class Core {
 
+    private final DebugFrame debugFrame;
+
     private final Config config;
     private final Random random;
     private final List<Mutation> mutations;
@@ -20,6 +22,9 @@ public class Core {
 
     public Core(Config config) {
         this.config = config;
+
+        this.debugFrame = new DebugFrame();
+        this.debugFrame.setVisible(true);
 
         random = new Random();
         currentInnovation = 1;
@@ -33,6 +38,10 @@ public class Core {
 
     public Config getConfig() {
         return config;
+    }
+
+    public DebugFrame getDebugFrame() {
+        return debugFrame;
     }
 
     public Random getRandom() {

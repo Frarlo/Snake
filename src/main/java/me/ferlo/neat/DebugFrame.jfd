@@ -1,0 +1,71 @@
+JFDML JFormDesigner: "6.0.4.1.172" Java: "1.8.0_152-release" encoding: "UTF-8"
+
+new FormModel {
+	contentType: "form/swing"
+	root: new FormRoot {
+		add( new FormWindow( "javax.swing.JFrame", new FormLayoutManager( class java.awt.GridLayout ) {
+			"columns": 2
+			"rows": 6
+		} ) {
+			name: "this"
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "genLabel"
+				"text": "Generation"
+				auxiliary() {
+					"JavaCodeGenerator.variableLocal": true
+				}
+			} )
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "genValue"
+			} )
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "speciesLabel"
+				"text": "Species"
+				auxiliary() {
+					"JavaCodeGenerator.variableLocal": true
+				}
+			} )
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "speciesValue"
+			} )
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "genomeLabel"
+				"text": "Genome"
+				auxiliary() {
+					"JavaCodeGenerator.variableLocal": true
+				}
+			} )
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "genomeValue"
+			} )
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "fitnessLabel"
+				"text": "Fitness"
+				auxiliary() {
+					"JavaCodeGenerator.variableLocal": true
+				}
+			} )
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "fitnessValue"
+			} )
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "maxFitnessLabel"
+				"text": "Max Fitness"
+				auxiliary() {
+					"JavaCodeGenerator.variableLocal": true
+				}
+			} )
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "maxValue"
+			} )
+			add( new FormComponent( "javax.swing.JToggleButton" ) {
+				name: "speedButton"
+				"text": "Toggle speed"
+				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "speedButtonActionPerformed", true ) )
+			} )
+		}, new FormLayoutConstraints( null ) {
+			"location": new java.awt.Point( 0, 0 )
+			"size": new java.awt.Dimension( 400, 300 )
+		} )
+	}
+}

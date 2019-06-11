@@ -13,6 +13,7 @@ public class Species {
     private Genome representative;
     private final List<Genome> members;
 
+    private float currMaxFitness;
     private float maxFitness;
     private float avgFitness;
 
@@ -31,20 +32,27 @@ public class Species {
 
     public void nextGeneration() {
 
-        members.forEach(Genome::calculateFitness);
+        core.getDebugFrame().setGenomes(members.size());
+
+        for (int i = 0; i < members.size(); i++) {
+            final Genome genome = members.get(i);
+            core.getDebugFrame().setCurrentGenome(i + 1);
+            genome.calculateFitness();
+        }
 
         final List<Genome> sorted = new ArrayList<>(members);
         sorted.sort(Comparator.comparingDouble(Genome::getFitness));
 
-        final int toRemove = (int) Math.floor(sorted.size() * core.getConfig().getGenerationEliminationPercentage());
-        for (int i = 0; i < toRemove; i++)
+        final int toRemove = (int) Math.ceil(sorted.size() * core.getConfig().getGenerationEliminationPercentage());
+        for (int i = 0; i < toRemove && sorted.size() > 1; i++)
             sorted.remove(sorted.size() - 1);
 
         this.members.clear();
         this.members.addAll(sorted);
 
-        if (sorted.get(0).getFitness() > maxFitness) {
-            maxFitness = sorted.get(0).getFitness();
+        currMaxFitness = sorted.get(0).getFitness();
+        if (currMaxFitness > maxFitness) {
+            maxFitness = currMaxFitness;
             staleness = 0;
         } else {
             staleness++;
@@ -53,7 +61,8 @@ public class Species {
         avgFitness = 0;
         for(Genome genome : members)
             avgFitness += genome.getFitness();
-        avgFitness /= members.size();
+        if(!members.isEmpty())
+            avgFitness /= members.size();
 
         representative = sorted.get(0);
     }
@@ -105,7 +114,7 @@ public class Species {
     }
 
     public float getMaxFitness() {
-        return maxFitness;
+        return currMaxFitness;
     }
 
     public float getAvgFitness() {

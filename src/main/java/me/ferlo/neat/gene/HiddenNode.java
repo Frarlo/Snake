@@ -2,27 +2,29 @@ package me.ferlo.neat.gene;
 
 import me.ferlo.neat.Core;
 
-public class GenericNode extends Node {
+public class HiddenNode extends Node {
 
     private final Core core;
 
-    public GenericNode(Core core, int id) {
+    public HiddenNode(Core core, int id) {
         super(id);
         this.core = core;
     }
 
-    public GenericNode(GenericNode other) {
+    public HiddenNode(HiddenNode other) {
         super(other);
         core = other.core;
     }
 
     @Override
-    public GenericNode copy() {
-        return new GenericNode(this);
+    public HiddenNode copy() {
+        return new HiddenNode(this);
     }
 
     @Override
     public float doFeedForward(float input) {
+        if(incoming.isEmpty())
+            return 0;
         return core.getConfig().getActivationFunction().activate(input);
     }
 }

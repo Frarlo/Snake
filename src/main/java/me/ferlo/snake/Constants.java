@@ -11,5 +11,5 @@ public interface Constants {
 
     int MOVEMENT_SPEED = 4;
     int MOVEMENT_ERROR_MARGIN = 3;
-    int MAX_STORED_MOVES = 1;
+    int MAX_STORED_MOVES = 4;
 }

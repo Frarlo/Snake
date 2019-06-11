@@ -14,6 +14,8 @@ public class Evolver {
     public static Genome train(Config config) {
 
         final Core core = new Core(config);
+        core.getDebugFrame().setTargetGeneration(config.getTargetGeneration());
+
         final Population population = new Population(core);
 
         while(true) {
@@ -21,8 +23,10 @@ public class Evolver {
             Genome best = population.getBest();
 
             if(best.getFitness() >= config.getTargetFitness() ||
-                    population.getGeneration() >= config.getTargetGeneration())
+                    population.getGeneration() >= config.getTargetGeneration()) {
+                core.getDebugFrame().dispose();
                 return best;
+            }
         }
     }
 }

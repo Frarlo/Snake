@@ -2,6 +2,8 @@ package me.ferlo.snake;
 
 import me.ferlo.neat.Config;
 import me.ferlo.neat.Evolver;
+import me.ferlo.neat.FitnessCalculator;
+import me.ferlo.neat.Model;
 import me.ferlo.snake.entity.EntityManager;
 import me.ferlo.snake.entity.Pitone;
 import me.ferlo.snake.entity.Quadratino;
@@ -11,7 +13,10 @@ import me.ferlo.snake.util.SeiMortoException;
 import me.ferlo.snake.util.Timer;
 
 import java.awt.event.KeyEvent;
-import java.util.Arrays;
+import java.util.*;
+import java.util.function.DoubleSupplier;
+import java.util.function.ToDoubleFunction;
+import java.util.stream.IntStream;
 
 public class Snake implements Constants {
 
@@ -28,6 +33,8 @@ public class Snake implements Constants {
     private Timer ticksTimer;
 
     private int score;
+
+    public boolean skipSleep = false;
     
     private Snake() {
     }
@@ -66,120 +73,158 @@ public class Snake implements Constants {
     @SuppressWarnings("InfiniteLoopStatement")
     private void gameLoop() {
 
-        Evolver.train(Config.newBuilder(6, 4, model -> {
+        final FitnessCalculator fitnessCalculator = (model, fitnessConsumer) -> {
+
+            final List<Integer> keys = new ArrayList<>();
+            keys.add(KeyEvent.VK_LEFT);
+            keys.add(KeyEvent.VK_RIGHT);
+            keys.add(KeyEvent.VK_UP);
+            keys.add(KeyEvent.VK_DOWN);
 
             int oldScore = score;
             int sameScoreTicks = 0;
-
-            int ticksPlayed = 0;
             int timeoutTicks = 0;
 
-            try {
-                while(true) {
+            // Old fitness func
+            final int[] ticksPlayed = { 0 };
+            final DoubleSupplier fitnessSupplier = () -> score * 100f / ticksPlayed[0];
 
-                    if(++timeoutTicks > SQUARE_WIDTH / MOVEMENT_SPEED) {
+            // New fitness func
+            final float[] fitness = { 0 };
+            int prevAppleXDist = Math.abs(entityManager.getCobra().getHead().getMiddleX() - entityManager.getMela().getMiddleX());
+            int prevAppleYDist = Math.abs(entityManager.getCobra().getHead().getMiddleY() - entityManager.getMela().getMiddleY());
+//            final DoubleSupplier fitnessSupplier = () -> fitness[0] + 100 * score;
+
+            try {
+                while (true) {
+                    final long startMs = System.currentTimeMillis();
+
+                    if (++timeoutTicks > SQUARE_WIDTH / MOVEMENT_SPEED) {
                         timeoutTicks = 0;
 
-                        ticksPlayed++;
+                        final Pitone pitone = entityManager.getCobra();
+                        final Quadratino apple = entityManager.getMela();
+
+                        // Kill loops
+
+                        ticksPlayed[0]++;
                         if (score == oldScore)
                             sameScoreTicks++;
                         else
                             sameScoreTicks = 0;
+                        oldScore = score;
 
-                        if (sameScoreTicks > 200)
+                        if (sameScoreTicks > 100 * pitone.getSegmenti().size())
                             throw new SeiMortoException();
+
+                        // Reward going towards the apple
+
+                        final int appleXDist = Math.abs(pitone.getHead().getMiddleX() - apple.getMiddleX());
+                        final int appleYDist = Math.abs(pitone.getHead().getMiddleY() - apple.getMiddleY());
+
+                        if(appleXDist != prevAppleXDist)
+                            fitness[0] += appleXDist < prevAppleXDist ? 1f : -1.5f;
+                        if(appleYDist != prevAppleYDist)
+                            fitness[0] += appleYDist < prevAppleYDist ? 1f : -1.5f;
+                        prevAppleXDist = appleXDist;
+                        prevAppleYDist = appleYDist;
 
                         // Evaluate network
 
-                        final Pitone pitone = entityManager.getCobra();
-                        final Quadratino mela = entityManager.getMela();
-
                         float[] inputs = new float[6];
 
-                        // Left distance
-                        inputs[0] = pitone.getX();
-                        for (int i = pitone.getHead().getMiddleX() - SQUARE_WIDTH; i > 0; i -= SQUARE_WIDTH) {
-                            Quadratino quad = entityManager.getQuadrato(i, pitone.getHead().getMiddleY());
-                            if (pitone.getSegmenti().contains(quad)) {
-                                inputs[0] = pitone.getX() - quad.getMiddleX();
-                                break;
-                            }
+                        // Left
+                        final int prevX = pitone.getHead().getMiddleX() - SQUARE_WIDTH;
+                        if(prevX < 0)
+                            inputs[0] = 1f;
+                        else {
+                            final Quadratino quad = entityManager.getQuadrato(prevX, pitone.getHead().getMiddleY());
+                            if(pitone.getSegmenti().contains(quad))
+                                inputs[0] = 1f;
                         }
-                        // Right distance
-                        inputs[1] = TABLE_WIDTH - pitone.getX();
-                        for (int i = pitone.getHead().getMiddleX() + SQUARE_WIDTH; i < TABLE_WIDTH; i += SQUARE_WIDTH) {
-                            Quadratino quad = entityManager.getQuadrato(i, pitone.getHead().getMiddleY());
-                            if (pitone.getSegmenti().contains(quad)) {
-                                inputs[1] = quad.getMiddleX() - pitone.getX();
-                                break;
-                            }
+                        // Right
+                        final int nextX = pitone.getHead().getMiddleX() + SQUARE_WIDTH;
+                        if(nextX > TABLE_WIDTH)
+                            inputs[1] = 1f;
+                        else {
+                            final Quadratino quad = entityManager.getQuadrato(nextX, pitone.getHead().getMiddleY());
+                            if(pitone.getSegmenti().contains(quad))
+                                inputs[1] = 1f;
                         }
-                        // Top distance
-                        inputs[2] = pitone.getY();
-                        for (int i = pitone.getHead().getMiddleY() - SQUARE_HEIGHT; i > 0; i -= SQUARE_HEIGHT) {
-                            Quadratino quad = entityManager.getQuadrato(pitone.getHead().getMiddleX(), i);
-                            if (pitone.getSegmenti().contains(quad)) {
-                                inputs[2] = pitone.getY() - quad.getMiddleY();
-                                break;
-                            }
+                        // Up
+                        final int prevY = pitone.getHead().getMiddleY() - SQUARE_HEIGHT;
+                        if(prevY < 0)
+                            inputs[2] = 1f;
+                        else {
+                            final Quadratino quad = entityManager.getQuadrato(pitone.getHead().getMiddleX(), prevY);
+                            if(pitone.getSegmenti().contains(quad))
+                                inputs[2] = 1f;
                         }
-                        // Bottom distance
-                        inputs[3] = TABLE_HEIGHT - pitone.getY();
-                        for (int i = pitone.getHead().getMiddleY() + SQUARE_WIDTH; i < TABLE_HEIGHT; i += SQUARE_HEIGHT) {
-                            Quadratino quad = entityManager.getQuadrato(pitone.getHead().getMiddleX(), i);
-                            if (pitone.getSegmenti().contains(quad)) {
-                                inputs[3] = quad.getMiddleY() - pitone.getY();
-                                break;
-                            }
+                        // Down
+                        final int nextY = pitone.getHead().getMiddleY() + SQUARE_HEIGHT;
+                        if(nextY > TABLE_HEIGHT)
+                            inputs[3] = 1f;
+                        else {
+                            final Quadratino quad = entityManager.getQuadrato(pitone.getHead().getMiddleX(), nextY);
+                            if(pitone.getSegmenti().contains(quad))
+                                inputs[3] = 1f;
                         }
 
-                        inputs[4] = pitone.getX() - mela.getMiddleX(); // Mela x diff
-                        inputs[5] = pitone.getY() - mela.getMiddleY(); // Mela y diff
+                        inputs[4] = pitone.getHead().getMiddleX() > apple.getMiddleX() ? -1f :
+                                pitone.getHead().getMiddleX() < apple.getMiddleX() ? 1f : 0f;
+                        inputs[5] = pitone.getHead().getMiddleY() > apple.getMiddleY() ? -1f :
+                                pitone.getHead().getMiddleY() < apple.getMiddleY() ? 1f : 0f;
 
                         float[] outputs = model.evaluate(inputs);
 
-                        if (outputs[0] > 0.5f)
-                            entityManager.onPressKey(KeyEvent.VK_LEFT);
-                        else if (outputs[1] > 0.5f)
-                            entityManager.onPressKey(KeyEvent.VK_RIGHT);
-                        else if (outputs[2] > 0.5f)
-                            entityManager.onPressKey(KeyEvent.VK_UP);
-                        else if (outputs[3] > 0.5f)
-                            entityManager.onPressKey(KeyEvent.VK_DOWN);
+                        final List<Map.Entry<Integer, Float>> sortedOutputs = new ArrayList<>();
+                        IntStream.range(0, outputs.length)
+                                .forEach(i -> sortedOutputs.add(new AbstractMap.SimpleEntry<>(i, outputs[i])));
+                        sortedOutputs.stream()
+                                .filter(e -> e.getValue() >= 0.5F)
+                                .sorted(Comparator.comparingDouble((ToDoubleFunction<Map.Entry<Integer, Float>>) Map.Entry::getValue).reversed())
+                                .forEachOrdered(e -> entityManager.onPressKey(keys.get(e.getKey())));
+
                         System.out.println(Arrays.toString(inputs) + " -> " + Arrays.toString(outputs));
+                        fitnessConsumer.accept((float) fitnessSupplier.getAsDouble());
                     }
 
                     // Ticks
                     entityManager.onTick();
                     // Graphics
                     renderer.render();
+
+                    // Wait until the next frame
+
+                    final long endMs = System.currentTimeMillis();
+                    final long timePassed = endMs - startMs;
+                    final long toWait = (1000 / FPS) - timePassed;
+
+                    if(!skipSleep && toWait > 0) {
+                        try {
+                            Thread.sleep(toWait);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
             } catch (SeiMortoException ex) {
+                fitnessConsumer.accept((float) fitnessSupplier.getAsDouble());
                 restart();
             }
+        };
 
-            final Pitone pitone = entityManager.getCobra();
-            final Quadratino mela = entityManager.getMela();
-
-            final float melaXdiff = Math.abs(pitone.getX() - mela.getMiddleX());
-            final float melayDiff = Math.abs(pitone.getY() - mela.getMiddleY());
-
-            if(ticksPlayed == 0)
-                ticksPlayed++;
-
-            float fitness = (float)score / (float)ticksPlayed;
-//            if(melaXdiff != 0)
-//                fitness += 1 / melaXdiff;
-//            if(melayDiff != 0)
-//                fitness += 1 / melayDiff;
-            if(fitness == 0)
-                fitness = ticksPlayed / 100f;
+//        Mythan.newInstance(6, 4, new CustomizedSigmoidActivation(), new FitnessCalculator() {
+//            @Override
+//            public double getFitness(Network network) {
+        final Model best = Evolver.train(Config.newBuilder(6, 4, fitnessCalculator)
+                .setTargetGeneration(100));
+        skipSleep = false;
+        while(true)
+            fitnessCalculator.calculateFitness(best, fitness -> {});
 
 
-            System.out.println(fitness);
-
-            return fitness;
-        }));
+//        }).trainToFitness(150, Double.MAX_VALUE);
 
 //        try {
 //            while(true) {
@@ -248,9 +293,5 @@ public class Snake implements Constants {
 
     public int getScore() {
         return score;
-    }
-
-    public int getGeneration() {
-        return Evolver.getGeneration();
     }
 }

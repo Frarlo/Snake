@@ -8,7 +8,7 @@ public abstract class Node {
 
     private final int id;
 
-    private final List<Link> incoming;
+    protected final List<Link> incoming;
     protected float value;
 
     public Node(int id) {

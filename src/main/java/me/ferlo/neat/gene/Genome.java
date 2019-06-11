@@ -4,13 +4,19 @@ import me.ferlo.neat.Core;
 import me.ferlo.neat.Model;
 
 import java.util.*;
+import java.util.function.DoubleConsumer;
 
 public class Genome implements Model {
 
     private final Core core;
     private final Unsafe unsafe;
 
-    private final List<Node> nodes;
+    private final Map<Integer, Node> idToNode;
+
+    private final List<Node> inputNodes;
+    private final List<Node> hiddenNodes;
+    private final List<Node> outputNodes;
+
     private final Map<Integer, Link> links;
 
     private final int inputSize;
@@ -24,32 +30,33 @@ public class Genome implements Model {
     public Genome(Core core) {
         this.core = core;
 
-        nodes = new ArrayList<>();
-        links = new HashMap<>();
-
         inputSize = core.getConfig().getInputSize();
         outputSize = core.getConfig().getOutputSize();
 
+        idToNode = new HashMap<>();
+
+        inputNodes = new ArrayList<>(inputSize);
+        hiddenNodes = new ArrayList<>();
+        outputNodes = new ArrayList<>(outputSize);
+
+        links = new HashMap<>();
+
         this.unsafe = new Unsafe();
 
-        final List<Node> inputNodes = new ArrayList<>();
-        for(int i = 0; i < inputSize; i++) {
-            final Node inNode = unsafe.newInputNode();
-            inputNodes.add(inNode);
-            nodes.add(inNode);
-        }
+        for(int i = 0; i < inputSize; i++)
+            unsafe.addNode(unsafe.newInputNode());
 
-        for(Node inNode : inputNodes) {
-            for(int j = 0; j < outputSize; j++) {
-                final Node outNode = unsafe.newNode();
+        for(int j = 0; j < outputSize; j++) {
+            final Node outNode = unsafe.newOutputNode();
+            unsafe.addNode(outNode);
 
-                nodes.add(outNode);
-                unsafe.addConnection(new Link(inNode, outNode,
+            for(Node inNode : inputNodes) {
+                unsafe.addConnection(new Link(
+                        inNode.getId(), outNode.getId(),
                         core.getRandom().nextFloat() * 4f - 2f,
                         true, core.getAndIncrementInnovation()));
             }
         }
-        generateNetwork();
     }
 
     public Genome(Genome other) {
@@ -58,13 +65,22 @@ public class Genome implements Model {
         inputSize = core.getConfig().getInputSize();
         outputSize = core.getConfig().getOutputSize();
 
-        nodes = new ArrayList<>(other.nodes.size());
+        idToNode = new HashMap<>();
+
+        inputNodes = new ArrayList<>(other.inputNodes.size());
+        hiddenNodes = new ArrayList<>(other.hiddenNodes.size());
+        outputNodes = new ArrayList<>(other.outputNodes.size());
+
         links = new HashMap<>(other.links.size());
 
         this.unsafe = new Unsafe();
 
-        for(Node node : other.nodes)
-            nodes.add(node.copy());
+        new ArrayList<>(Arrays.asList(other.inputNodes, other.hiddenNodes, other.outputNodes))
+                .forEach(old -> {
+                    for(Node node : old)
+                        unsafe.addNode(node.copy());
+                });
+
         for(Link link : other.links.values())
             unsafe.addConnection(link.copy());
 
@@ -73,8 +89,8 @@ public class Genome implements Model {
     }
 
     public void randomizeWeights() {
-        for (Link link : links.values())
-            link.setWeight(core.getRandom().nextFloat() * 4 - 2);
+        for(Link link : links.values())
+            link.setWeight(core.getRandom().nextFloat() * 4f - 2f);
     }
 
     public static Genome crossover(Core core, Genome p1, Genome p2) {
@@ -103,14 +119,14 @@ public class Genome implements Model {
                 final Link copy = link2.copy();
 
                 child.unsafe.addConnection(copy);
-                child.unsafe.addHiddenNode(copy.getIn());
-                child.unsafe.addHiddenNode(copy.getOut());
+                child.unsafe.addNode(weakest.idToNode.get(copy.getIn()));
+                child.unsafe.addNode(weakest.idToNode.get(copy.getOut()));
             } else {
                 final Link copy = link.copy();
 
                 child.unsafe.addConnection(copy);
-                child.unsafe.addHiddenNode(copy.getIn());
-                child.unsafe.addHiddenNode(copy.getOut());
+                child.unsafe.addNode(strongest.idToNode.get(copy.getIn()));
+                child.unsafe.addNode(strongest.idToNode.get(copy.getOut()));
             }
         }
 
@@ -125,20 +141,22 @@ public class Genome implements Model {
         float weightAvg = 0;
         int weights = 0;
 
-        int shortestInnovation;
+        int shortestInnovation, longestInnovation;
         Map<Integer, Link> longest, shortest;
 
         if(maxInnovation > other.maxInnovation) {
             longest = links;
+            longestInnovation = maxInnovation;
             shortest = other.links;
             shortestInnovation = other.maxInnovation;
         } else {
             longest = other.links;
+            longestInnovation = other.maxInnovation;
             shortest = links;
             shortestInnovation = maxInnovation;
         }
 
-        for(int i = 1; i < longest.size(); i++) {
+        for(int i = 1; i <= longestInnovation; i++) {
             final Link link1 = longest.get(i);
             final Link link2 = shortest.get(i);
 
@@ -148,12 +166,13 @@ public class Genome implements Model {
             } else if(link1 != link2) {
                 if (i <= shortestInnovation)
                     disjoint++;
-                else // if (i > shortestInn)
+                else // if (i > shortestInnovation)
                     excess++;
             }
         }
 
-        weightAvg /= weights;
+        if(weights != 0)
+            weightAvg /= weights;
         return core.getConfig().getDistanceExcessCoefficient() * excess / core.getConfig().getDistanceNfactor() +
                 core.getConfig().getDistanceDisjointCoefficient() * disjoint / core.getConfig().getDistanceNfactor() +
                 core.getConfig().getDistanceAvgWeightCoefficient() * weightAvg;
@@ -161,18 +180,25 @@ public class Genome implements Model {
 
     public void mutate() {
         core.getMutations().forEach(mutation -> mutation.mutate(unsafe));
-        generateNetwork();
     }
 
     private void generateNetwork() {
-        for(Node node : nodes)
-            node.getIncoming().clear();
+        new ArrayList<>(Arrays.asList(inputNodes, hiddenNodes, outputNodes))
+                .forEach(nodes -> {
+                    for(Node node : inputNodes)
+                        node.getIncoming().clear();
+                });
         for(Link link : links.values())
-            link.getOut().addIncoming(link);
+            if(link.isEnabled())
+                idToNode.get(link.getOut()).addIncoming(link);
     }
 
     public void calculateFitness() {
-        fitness = core.getConfig().getFitnessCalculator().calculateFitness(this);
+        generateNetwork();
+        core.getConfig().getFitnessCalculator().calculateFitness(this, fitness -> {
+            this.fitness = fitness;
+            core.getDebugFrame().setFitness(fitness);
+        });
     }
 
     public float getFitness() {
@@ -185,36 +211,122 @@ public class Genome implements Model {
         if(inputs.length != inputSize)
             throw new UnsupportedOperationException("Input size and given input differ");
 
+        final Set<Node> alreadyCalculated = new HashSet<>();
+
         final List<Node> inputNodes = unsafe.getInputNodes();
-        for(int i = 0; i < inputSize; i++)
-            inputNodes.get(i).feedForward(inputs[i]);
-
-        for(Node node : nodes) {
-            float sum = 0;
-            for(Link incoming : node.getIncoming()) {
-                final Node other = incoming.getOut();
-                sum += incoming.getWeight() * other.getValue();
-            }
-
-            if(!(node instanceof InputNode))
-                node.feedForward(sum);
-        }
+        final List<Node> outputNodes = unsafe.getOutputNodes();
 
         final float[] outputs = new float[outputSize];
-        final List<Node> outputNodes = unsafe.getOutputNodes();
-        for(int i = 0; i < outputSize; i++)
-            outputs[i] = outputNodes.get(i).getValue();
+
+        for(int i = 0; i < inputSize; i++) {
+            inputNodes.get(i).feedForward(inputs[i]);
+            alreadyCalculated.add(inputNodes.get(i));
+        }
+
+        for(int i = 0; i < outputSize; i++) {
+
+//            final float eval0 = evaluateNode0(outputNodes.get(i), alreadyCalculated);
+            final float eval1 = evaluateNode(outputNodes.get(i), alreadyCalculated);
+
+//            if(Math.abs(eval0 - eval1) > 0.01)
+//                throw new UnsupportedOperationException("uwot " + eval0 + " " + eval1);
+
+            outputs[i] = eval1;
+            alreadyCalculated.add(outputNodes.get(i));
+        }
+
+//        for(Node node : nodes) {
+//            float sum = 0;
+//            for(Link incoming : node.getIncoming()) {
+//                final Node other = incoming.getIn();
+//                sum += incoming.getWeight() * other.getValue();
+//            }
+//
+//            if(!(node instanceof InputNode))
+//                node.feedForward(sum);
+//        }
+//
+//        final float[] outputs = new float[outputSize];
+//        final List<Node> outputNodes = unsafe.getOutputNodes();
+//        for(int i = 0; i < outputSize; i++)
+//            outputs[i] = outputNodes.get(i).getValue();
 
         return outputs;
     }
 
+    public float evaluateNode0(Node node, Set<Node> alreadyCalculated) {
+        if(alreadyCalculated.contains(node))
+            return node.getValue();
+
+        float sum = 0;
+        for(Link incoming : node.getIncoming()) {
+            final Node other = idToNode.get(incoming.getIn());
+            sum += incoming.getWeight() * evaluateNode0(other, alreadyCalculated);
+        }
+
+        node.feedForward(sum);
+        alreadyCalculated.add(node);
+        return node.getValue();
+    }
+
+    public float evaluateNode(Node startNode, Set<Node> alreadyCalculated) {
+
+        final float[] res = new float[] { 0 };
+
+        final Deque<Map.Entry<Node, DoubleConsumer>> stack = new LinkedList<>();
+        stack.push(new AbstractMap.SimpleEntry<>(startNode, value -> res[0] = (float) value));
+
+        while(!stack.isEmpty()) {
+
+            final Map.Entry<Node, DoubleConsumer> entry = stack.pop();
+            final Node node = entry.getKey();
+            final DoubleConsumer consumer = entry.getValue();
+
+            if(alreadyCalculated.contains(node)) {
+                consumer.accept(node.getValue());
+                continue;
+            }
+
+            final float[] sum = { 0, 0 };
+            if(node.getIncoming().isEmpty()) {
+                node.feedForward(sum[0]);
+                alreadyCalculated.add(node);
+                consumer.accept(node.getValue());
+                continue;
+            }
+
+            for(Link incoming : node.getIncoming()) {
+                final Node other = idToNode.get(incoming.getIn());
+
+                alreadyCalculated.add(node); // Prevent loops
+                stack.push(new AbstractMap.SimpleEntry<>(other, value -> {
+                    sum[0] += incoming.getWeight() * value;
+                    sum[1] += 1;
+
+                    if(sum[1] >= node.getIncoming().size()) {
+                        node.feedForward(sum[0]);
+                        alreadyCalculated.add(node);
+                        consumer.accept(node.getValue());
+                    }
+                }));
+            }
+        }
+
+        return res[0];
+    }
+
     public class Unsafe {
 
-        private final List<Node> unmodifiableNodes;
+        private final List<Node> unmodifiableInputNodes;
+        private final List<Node> unmodifiableOutputNodes;
+        private final List<Node> unmodifiableHiddenNodes;
+
         private final Collection<Link> unmodifiableLinks;
 
         private Unsafe() {
-            this.unmodifiableNodes = Collections.unmodifiableList(nodes);
+            this.unmodifiableInputNodes = Collections.unmodifiableList(inputNodes);
+            this.unmodifiableHiddenNodes = Collections.unmodifiableList(hiddenNodes);
+            this.unmodifiableOutputNodes = Collections.unmodifiableList(outputNodes);
             this.unmodifiableLinks = Collections.unmodifiableCollection(links.values());
         }
 
@@ -222,15 +334,25 @@ public class Genome implements Model {
             return new InputNode(lastNode++);
         }
 
-        public Node newNode() {
-            return new GenericNode(core, lastNode++);
+        public Node newOutputNode() {
+            return new OutputNode(core, lastNode++);
         }
 
-        public void addHiddenNode(Node node) {
-            if(!nodes.contains(node)) {
-                final int hiddenNodes = nodes.size() - 1 - outputSize;
-                nodes.add(hiddenNodes, node);
-            }
+        public Node newNode() {
+            return new HiddenNode(core, lastNode++);
+        }
+
+        public void addNode(Node node) {
+            if(idToNode.containsKey(node.getId()))
+                return;
+            idToNode.put(node.getId(), node);
+
+            if(node instanceof InputNode)
+                inputNodes.add(node);
+            else if(node instanceof OutputNode)
+                outputNodes.add(node);
+            else if(node instanceof HiddenNode)
+                hiddenNodes.add(node);
         }
 
         public Collection<Link> getLinks() {
@@ -241,12 +363,8 @@ public class Genome implements Model {
             return links.get(innovation);
         }
 
-        public List<Node> getNodes() {
-            return unmodifiableNodes;
-        }
-
         public List<Node> getInputNodes() {
-            return unmodifiableNodes.subList(0, inputSize);
+            return unmodifiableInputNodes;
         }
 
         public int getInputSize() {
@@ -254,7 +372,7 @@ public class Genome implements Model {
         }
 
         public List<Node> getOutputNodes() {
-            return unmodifiableNodes.subList(nodes.size() - outputSize, nodes.size());
+            return unmodifiableOutputNodes;
         }
 
         public int getOutputSize() {
@@ -262,11 +380,11 @@ public class Genome implements Model {
         }
 
         public List<Node> getHiddenNodes() {
-            return unmodifiableNodes.subList(inputSize, nodes.size() - outputSize);
+            return unmodifiableHiddenNodes;
         }
 
         public int getHiddenSize() {
-            return nodes.size() - inputSize - outputSize;
+            return unmodifiableHiddenNodes.size();
         }
 
         public void addConnection(Link link) {

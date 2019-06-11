@@ -1,5 +1,7 @@
 package me.ferlo.neat;
 
+import java.util.function.Consumer;
+
 public interface FitnessCalculator {
-    float calculateFitness(Model model);
+    void calculateFitness(Model model, Consumer<Float> fitnessConsumer);
 }
