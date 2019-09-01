@@ -1,4 +1,4 @@
-import me.ferlo.snake.Snake;
+import me.ferlo.snake.TrainerGame;
 
 public class Main {
 
@@ -7,6 +7,6 @@ public class Main {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        Snake.getInstance().start();
+        TrainerGame.getInstance().start();
     }
 }

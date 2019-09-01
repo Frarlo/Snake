@@ -1,12 +1,11 @@
 package me.ferlo.snake.entity;
 
 import me.ferlo.snake.Constants;
-import me.ferlo.snake.render.RenderContext;
-import me.ferlo.snake.render.Renderable;
+import me.ferlo.snake.Game;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -18,18 +17,21 @@ public class EntityManager implements Constants {
     private Quadratino mela;
 
     private final List<Entity> entities;
+    private final List<Entity> unmodifiableEntities;
 
     private final Random melaRandom = new Random();
 
-    public EntityManager() {
+    public EntityManager(Game game) {
+
         final Color color1 = Color.green;
         final Color color2 = new Color(50, 147, 60);
 
         entities = new ArrayList<>();
+        unmodifiableEntities = Collections.unmodifiableList(entities);
 
         // Serpente
 
-        cobra = new Pitone();
+        cobra = new Pitone(game);
         entities.add(cobra);
 
         // Quadratino
@@ -51,10 +53,6 @@ public class EntityManager implements Constants {
                 entities.add(sq);
             }
         }
-
-        // Sort entities
-
-        entities.sort(Comparator.comparingInt(Renderable::getPriority));
     }
 
     public Quadratino getQuadrato(int x, int y) {
@@ -70,10 +68,6 @@ public class EntityManager implements Constants {
 
     public void onTick() {
         entities.forEach(Entity::onTick);
-    }
-
-    public void onRender(RenderContext ctx) {
-        entities.forEach(e -> e.onRender(ctx));
     }
 
     public void onPressKey(int keyCode) {
@@ -104,6 +98,10 @@ public class EntityManager implements Constants {
 
         randomSq.setMela(true);
         mela = randomSq;
+    }
+
+    public List<Entity> getEntities() {
+        return unmodifiableEntities;
     }
 
     public Pitone getCobra() {

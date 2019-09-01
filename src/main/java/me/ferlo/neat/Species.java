@@ -5,10 +5,15 @@ import me.ferlo.neat.gene.Genome;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class Species {
 
     private final Core core;
+    private final ExecutorService executor = Executors.newFixedThreadPool(100);
 
     private Genome representative;
     private final List<Genome> members;
@@ -34,10 +39,18 @@ public class Species {
 
         core.getDebugFrame().setGenomes(members.size());
 
+        final List<Future<?>> futures = new ArrayList<>();
         for (int i = 0; i < members.size(); i++) {
             final Genome genome = members.get(i);
             core.getDebugFrame().setCurrentGenome(i + 1);
-            genome.calculateFitness();
+            futures.add(executor.submit(genome::calculateFitness));
+        }
+
+        try {
+            for (Future<?> f : futures)
+                f.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
         }
 
         final List<Genome> sorted = new ArrayList<>(members);

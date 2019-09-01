@@ -13,7 +13,7 @@ public class PitoneRenderer extends SwingRenderer<Pitone> {
     private static final int SNAKE_WIDTH = 10;
 
     public PitoneRenderer(SwingRenderManager renderManager) {
-        super(renderManager);
+        super(renderManager, HIGH_PRIORITY);
     }
 
     @Override

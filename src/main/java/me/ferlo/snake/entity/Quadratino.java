@@ -7,7 +7,7 @@ import java.awt.*;
 import static me.ferlo.snake.Constants.SQUARE_HEIGHT;
 import static me.ferlo.snake.Constants.SQUARE_WIDTH;
 
-public class Quadratino extends BaseEntity<Quadratino> {
+public class Quadratino implements Entity {
 
     private final int x, y;
     private final int width, height;

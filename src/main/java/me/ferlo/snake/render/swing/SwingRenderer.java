@@ -11,6 +11,10 @@ public abstract class SwingRenderer<T> extends BaseRenderer<T, SwingRenderManage
         super(renderManager);
     }
 
+    public SwingRenderer(SwingRenderManager renderManager, int priority) {
+        super(renderManager, priority);
+    }
+
     @Override
     public void onRender(RenderContext ctx, T toRender) {
         if(!(ctx instanceof SwingContext))

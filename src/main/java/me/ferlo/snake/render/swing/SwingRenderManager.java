@@ -1,7 +1,8 @@
 package me.ferlo.snake.render.swing;
 
 import me.ferlo.snake.Constants;
-import me.ferlo.snake.Snake;
+import me.ferlo.snake.Game;
+import me.ferlo.snake.entity.Entity;
 import me.ferlo.snake.entity.Pitone;
 import me.ferlo.snake.entity.Quadratino;
 import me.ferlo.snake.render.RenderManager;
@@ -14,16 +15,17 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.AbstractMap;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 
 public class SwingRenderManager extends JPanel implements RenderManager, Constants {
 
     // Constants
-
-    private static final Snake game = Snake.getInstance();
 
     private static final File BASE_PATH;
     private static final boolean SAVE_FRAMES = false;
@@ -42,6 +44,7 @@ public class SwingRenderManager extends JPanel implements RenderManager, Constan
 
     // Attributes
 
+    private final Game game;
     private final JFrame frame;
 
     private final Map<Class<?>, Renderer<?>> rendererMap;
@@ -49,7 +52,10 @@ public class SwingRenderManager extends JPanel implements RenderManager, Constan
     private final ExecutorService executor;
     private int frameNumber;
 
-    public SwingRenderManager() {
+    private final Semaphore semaphore = new Semaphore(0);
+
+    public SwingRenderManager(Game game) {
+        this.game = game;
 
         rendererMap = new HashMap<>();
         rendererMap.put(Pitone.class, new PitoneRenderer(this));
@@ -92,6 +98,7 @@ public class SwingRenderManager extends JPanel implements RenderManager, Constan
                 e1.printStackTrace();
             }
         }
+        semaphore.release();
     }
 
     @Override
@@ -107,11 +114,19 @@ public class SwingRenderManager extends JPanel implements RenderManager, Constan
 
         g.translate(startX, startY);
         g.drawRect(0, 0, TABLE_WIDTH, TABLE_HEIGHT);
-        game.getEntityManager().onRender(ctx);
+
+
+        //noinspection unchecked
+        game.getEntityManager().getEntities()
+                .stream()
+                .map(e -> new AbstractMap.SimpleEntry<>(e, (Renderer<Entity>) getRendererFor(e.getClass())))
+                .sorted(Comparator.comparingInt(e -> e.getValue().getPriority()))
+                .forEach(entry -> entry.getValue().onRender(ctx, entry.getKey()));
+
         g.translate(-startX, -startY);
 
         ctx.drawCenteredString(
-                "Punteggio: " + Snake.getInstance().getScore(),
+                "Punteggio: " + game.getScore(),
                 getWidth() / 2,
                 getHeight() - 20);
     }
@@ -120,7 +135,10 @@ public class SwingRenderManager extends JPanel implements RenderManager, Constan
     public void render() {
         if(!frame.isVisible())
             frame.setVisible(true);
-        paintImmediately(0, 0, getWidth(), getHeight());
+
+        semaphore.drainPermits();
+        repaint();
+        semaphore.acquireUninterruptibly();
     }
 
     @Override

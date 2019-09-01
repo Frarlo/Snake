@@ -5,7 +5,7 @@ new FormModel {
 	root: new FormRoot {
 		add( new FormWindow( "javax.swing.JFrame", new FormLayoutManager( class java.awt.GridLayout ) {
 			"columns": 2
-			"rows": 6
+			"rows": 5
 		} ) {
 			name: "this"
 			add( new FormComponent( "javax.swing.JLabel" ) {
@@ -57,11 +57,6 @@ new FormModel {
 			} )
 			add( new FormComponent( "javax.swing.JLabel" ) {
 				name: "maxValue"
-			} )
-			add( new FormComponent( "javax.swing.JToggleButton" ) {
-				name: "speedButton"
-				"text": "Toggle speed"
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "speedButtonActionPerformed", true ) )
 			} )
 		}, new FormLayoutConstraints( null ) {
 			"location": new java.awt.Point( 0, 0 )

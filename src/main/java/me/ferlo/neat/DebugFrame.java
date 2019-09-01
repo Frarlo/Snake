@@ -4,19 +4,12 @@
 
 package me.ferlo.neat;
 
-import me.ferlo.snake.Snake;
-
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 
 public class DebugFrame extends JFrame {
     public DebugFrame() {
         initComponents();
-    }
-
-    private void speedButtonActionPerformed(ActionEvent e) {
-        Snake.getInstance().skipSleep = speedButton.isSelected();
     }
 
     private void initComponents() {
@@ -32,11 +25,10 @@ public class DebugFrame extends JFrame {
         fitnessValue = new JLabel();
         JLabel maxFitnessLabel = new JLabel();
         maxValue = new JLabel();
-        speedButton = new JToggleButton();
 
         //======== this ========
         Container contentPane = getContentPane();
-        contentPane.setLayout(new GridLayout(6, 2));
+        contentPane.setLayout(new GridLayout(5, 2));
 
         //---- genLabel ----
         genLabel.setText("Generation");
@@ -62,11 +54,6 @@ public class DebugFrame extends JFrame {
         maxFitnessLabel.setText("Max Fitness");
         contentPane.add(maxFitnessLabel);
         contentPane.add(maxValue);
-
-        //---- speedButton ----
-        speedButton.setText("Toggle speed");
-        speedButton.addActionListener(e -> speedButtonActionPerformed(e));
-        contentPane.add(speedButton);
         pack();
         setLocationRelativeTo(getOwner());
         // JFormDesigner - End of component initialization  //GEN-END:initComponents
@@ -79,7 +66,6 @@ public class DebugFrame extends JFrame {
     private JLabel genomeValue;
     private JLabel fitnessValue;
     private JLabel maxValue;
-    private JToggleButton speedButton;
     // JFormDesigner - End of variables declaration  //GEN-END:variables
 
     private int generation;

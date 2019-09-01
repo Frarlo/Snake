@@ -1,5 +1,6 @@
 package me.ferlo.snake.entity;
 
+import me.ferlo.snake.Game;
 import me.ferlo.snake.util.MoveDirection;
 import me.ferlo.snake.util.SeiMortoException;
 
@@ -16,7 +17,9 @@ import static me.ferlo.snake.Constants.*;
  * Serpente
  * @author ferlin_francesco
  */
-public class Pitone extends BaseEntity<Pitone> {
+public class Pitone implements Entity {
+
+    private final Game game;
 
     private final List<Quadratino> segmenti;
     private final List<Quadratino> segmentiUnmodifiable;
@@ -29,8 +32,8 @@ public class Pitone extends BaseEntity<Pitone> {
 
     private Quadratino lastQuadrato;
     
-    public Pitone() {
-        super(HIGH_PRIORITY);
+    public Pitone(Game game) {
+        this.game = game;
 
         segmenti = new ArrayList<>();
         segmentiUnmodifiable = Collections.unmodifiableList(segmenti);
@@ -41,6 +44,12 @@ public class Pitone extends BaseEntity<Pitone> {
     public void reset(Quadratino quadratino) {
         segmenti.clear();
         segmenti.add(quadratino);
+
+        int qy = quadratino.getMiddleY();
+        for(int i = 0; i < 5; i++) {
+            qy -= SQUARE_HEIGHT;
+            segmenti.add(game.getEntityManager().getQuadrato(quadratino.getMiddleX(), qy));
+        }
         
         x = quadratino.getMiddleX();
         y = quadratino.getMiddleY();
@@ -155,5 +164,9 @@ public class Pitone extends BaseEntity<Pitone> {
 
     public List<Quadratino> getSegmenti() {
         return segmentiUnmodifiable;
+    }
+
+    public boolean canChangeDir() {
+        return canChangeDir;
     }
 }
