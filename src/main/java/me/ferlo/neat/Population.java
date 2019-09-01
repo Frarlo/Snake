@@ -67,6 +67,9 @@ public class Population {
         }
 
         species.removeIf(species -> {
+            // Always keep at least the one with the best fitness
+            if(species.getMaxFitness() >= best.getFitness())
+                return false;
             // Always keep the best species
             if(species.getMaxFitness() >= oldBestFitness)
                 return false;
